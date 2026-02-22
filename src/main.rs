@@ -3,8 +3,12 @@
 use core::arch::asm;
 
 mod interrupts;
+mod enable_paging;
 //use interrupts::do_interrupt;
 use interrupts::set_interrupt;
+use enable_paging::enable_paging;
+use enable_paging::setup_root_table;
+use enable_paging::ROOT_PAGE_TABLE;
 #[panic_handler]
 fn panic(__info: &core::panic::PanicInfo) -> ! { 
            loop{}
@@ -24,6 +28,7 @@ pub unsafe extern "C" fn _start() -> ! {
 }
 
 fn rust_main() -> !{
+      
       set_interrupt();
       loop{};
 }

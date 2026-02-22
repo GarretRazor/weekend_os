@@ -1,30 +1,33 @@
 #[repr(transparent)]
+#[derive(Copy, Clone)]
 pub struct Pte(u32);
 
 impl Pte{
-    pub fn new(ppn: u32 , flags: u8) -> self{
-         Self(pp << 10) | flags(as u32))
+    pub fn new(ppn: u32 , flags: u8) -> Self{
+         Self((ppn << 10) | (flags as u32))
     }
 }
-#[repr((4096))]
+#[repr(align(4096))]
 pub struct PageTable{
      pub entries: [Pte; 1024],
 }
+
 pub static mut ROOT_PAGE_TABLE:
+     
      PageTable = PageTable{
-         entries: [Pte(0); 1024],
+         entries: [const { Pte(0) }; 1024],
      };
 pub mod flags{
        pub const Valid: u8 = 1 << 0; 
-       pub const Readble: u8 = 1 << 1;
+       pub const Readable: u8 = 1 << 1;
        pub const Writeable: u8 = 1 << 2; 
        pub const Executable: u8 = 1 << 3; 
        pub const User: u8 = 1 << 4;
 }
 
 pub unsafe fn setup_root_table(root: &mut PageTable){
-    let ram_physical_addr = 0x80000000;
-    let ram_idx = ram_phys_addr >> 12;
+    let ram_phys_addr = 0x80000000;
+    let ram_idx = ram_phys_addr >> 22;
     let ram_ppn = ram_phys_addr >> 12; 
     root.entries[ram_idx] = Pte::new(ram_ppn as u32, flags::Valid | flags::Readable | flags::Executable);
     let uart_phys_addr = 0x10000000;
