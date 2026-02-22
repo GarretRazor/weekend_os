@@ -1,0 +1,19 @@
+[unstable]
+json-target-spec = true
+build-std = ["core","compiler_builtins"]
+[dependencies] 
+bootloader = "0.9"
+
+[build]
+target = "riscv32imac-unknown-none-elf.json"
+
+
+
+[target.riscv32imac-unknown-none-elf] # Or use your .json filename here
+runner = "qemu-system-riscv32 -machine virt -bios none -serial stdio -kernel"
+[target.'cfg(all(target_arch = "riscv32", target_os = "none"))']
+rustflags = [
+    "-C", "link-arg=-Tlinker.ld",
+    "-C", "linker-flavor=ld.lld",
+    "-C", "linker=rust-lld",
+]
