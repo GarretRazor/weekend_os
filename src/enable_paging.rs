@@ -12,6 +12,13 @@ pub struct PageTable{
      pub entries: [Pte; 1024],
 }
 
+#[repr(align(4096))]
+pub struct LeafPageTable{
+          pub entries: [Pte; 1024],
+}
+pub static mut KERNEL_LEAF_TABLE: LeafPageTable = LeafPageTable{
+      entries: [Pte(0); 1024],
+};
 pub static mut ROOT_PAGE_TABLE:
      
      PageTable = PageTable{
@@ -34,6 +41,8 @@ pub unsafe fn setup_root_table(root: &mut PageTable){
     let uart_idx = uart_phys_addr >> 22;
     let uart_ppn = uart_phys_addr >>12;
     root.entries[uart_idx] = Pte::new(uart_ppn as u32, flags::Valid | flags::Readable | flags::Writeable);
+    let leaf_ppn = ( unsafe{ core::ptr::addr_of!(KERNEL_LEAF_TABLE) as usize} >> 12 ) as u32;
+    root.entries[ram_idx] = Pte::new(leaf_ppn, flags::Valid);
 } 
 pub unsafe fn enable_paging(root_table_addr: usize) {
      let ppn = root_table_addr >> 12; 
@@ -47,4 +56,11 @@ pub unsafe fn enable_paging(root_table_addr: usize) {
      }
 }
 
+pub unsafe fn setup_kernel_leaf(leaf: &mut LeafPageTable){
+    for i in 0 .. 32 { 
+          let phys_addr = 0x80000000 + (i * 4096);
+          let ppn = (phys_addr >> 12) as u32; 
+          leaf.entries[i] = Pte::new(ppn, flags::Valid | flags::Readable | flags::Executable);
+     } 
 
+}
