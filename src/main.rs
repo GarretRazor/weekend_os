@@ -28,7 +28,12 @@ pub unsafe extern "C" fn _start() -> ! {
 }
 
 fn rust_main() -> !{
-      
+
+     unsafe{ 
+      let table_ptr = core::ptr::addr_of_mut!(ROOT_PAGE_TABLE);
+      setup_root_table(&mut *table_ptr);
+      enable_paging(core::ptr::addr_of! (ROOT_PAGE_TABLE) as usize);
       set_interrupt();
+     }
       loop{};
 }
