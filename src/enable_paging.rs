@@ -28,21 +28,20 @@ pub mod flags{
        pub const Valid: u8 = 1 << 0; 
        pub const Readable: u8 = 1 << 1;
        pub const Writeable: u8 = 1 << 2; 
-       pub const Executable: u8 = 1 << 3; 
+       pub const Executeable: u8 = 1 << 3; 
        pub const User: u8 = 1 << 4;
 }
 
 pub unsafe fn setup_root_table(root: &mut PageTable){
     let ram_phys_addr = 0x80000000;
     let ram_idx = ram_phys_addr >> 22;
-    let ram_ppn = ram_phys_addr >> 12; 
-    root.entries[ram_idx] = Pte::new(ram_ppn as u32, flags::Valid | flags::Readable | flags::Executable);
     let uart_phys_addr = 0x10000000;
     let uart_idx = uart_phys_addr >> 22;
     let uart_ppn = uart_phys_addr >>12;
     root.entries[uart_idx] = Pte::new(uart_ppn as u32, flags::Valid | flags::Readable | flags::Writeable);
-    let leaf_ppn = ( unsafe{ core::ptr::addr_of!(KERNEL_LEAF_TABLE) as usize} >> 12 ) as u32;
-    root.entries[ram_idx] = Pte::new(leaf_ppn, flags::Valid);
+    let leaf_phys_addr = ( unsafe{ core::ptr::addr_of!(KERNEL_LEAF_TABLE) as usize} >> 12 ) as u32;
+    let leaf_ppn = (leaf_phys_addr >> 12) as u32;
+    root.entries[ram_idx] = Pte::new(leaf_ppn, flags::Valid | flags::Readable | flags::Writeable | flags::Executeable);
 } 
 pub unsafe fn enable_paging(root_table_addr: usize) {
      let ppn = root_table_addr >> 12; 
@@ -55,12 +54,18 @@ pub unsafe fn enable_paging(root_table_addr: usize) {
              );
      }
 }
-
+#[inline(always)]
+pub unsafe fn flush_tlb() {
+          unsafe {
+              core::arch::asm!(
+                  "sfence.vma zero, zero");
+          }
+}
 pub unsafe fn setup_kernel_leaf(leaf: &mut LeafPageTable){
     for i in 0 .. 32 { 
           let phys_addr = 0x80000000 + (i * 4096);
           let ppn = (phys_addr >> 12) as u32; 
-          leaf.entries[i] = Pte::new(ppn, flags::Valid | flags::Readable | flags::Executable);
+          leaf.entries[i] = Pte::new(ppn, flags::Valid | flags::Readable | flags::Executeable);
      } 
 
 }
