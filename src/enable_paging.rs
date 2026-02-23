@@ -75,7 +75,8 @@ pub unsafe fn setup_kernel_leaf(leaf: &mut LeafPageTable){
     for i in 0 .. 32 { 
           let phys_addr = 0x80000000 + (i * 4096);
           let ppn = get_ppn(phys_addr) as usize; 
-          leaf.entries[i] = Pte::new(ppn, flags::Valid | flags::Readable | flags::Executeable);
+          leaf.entries[i] = Pte::new(ppn, 
+        flags::Valid | flags::Readable | flags::Writeable | flags::Executeable);
      } 
 
 }

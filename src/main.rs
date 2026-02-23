@@ -36,10 +36,10 @@ pub unsafe extern "C" fn _start() -> ! {
 pub unsafe fn long_jump_to_high_memory(){
     core::arch::asm!(
         "li t0, 0x7FC00000",
-        "auipc t1, 0",
+        "la t1, 1f",
         "add t1, t1, t0",
-        "addi t1, t1, 8",
         "jr t1",
+        "1:",
         out("t0") _, out("t1") _
         );
 }
