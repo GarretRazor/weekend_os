@@ -1,10 +1,10 @@
 #[repr(transparent)]
 #[derive(Copy, Clone)]
-pub struct Pte(u32);
-
+pub struct Pte(usize);
+const KERNEL_PHYSICAL_ADDRESS: usize = 0x80000000;
 impl Pte{
-    pub fn new(ppn: u32 , flags: u8) -> Self{
-         Self((ppn << 10) | (flags as u32))
+    pub fn new(ppn: usize , flags: u8) -> Self{
+         Self((ppn << 10) | (flags as usize))
     }
 }
 #[repr(align(4096))]
@@ -30,27 +30,35 @@ pub mod flags{
        pub const User: u8 = 1 << 4;
 }
 
-pub unsafe fn setup_root_table(root: &mut PageTable){
-    let ram_phys_addr = 0x80000000;
-    let ram_idx = ram_phys_addr >> 22;
-    let uart_phys_addr = 0x10000000;
-    let uart_idx = uart_phys_addr >> 22;
-    let uart_ppn = uart_phys_addr >>12;
-    root.entries[uart_idx] = Pte::new(uart_ppn as u32, flags::Valid | flags::Readable | flags::Writeable);
-    let leaf_phys_addr = ( unsafe{ core::ptr::addr_of!(KERNEL_LEAF_TABLE) as usize} >> 12 ) as u32;
-    let leaf_ppn = (leaf_phys_addr >> 12) as u32;
-    root.entries[ram_idx] = Pte::new(leaf_ppn, flags::Valid | flags::Readable | flags::Writeable | flags::Executeable);
-} 
-pub unsafe fn enable_paging(root_table_addr: usize) {
-     let ppn = root_table_addr >> 12; 
-     let satp_val = (1 << 31) | ppn;
 
-     unsafe {
-         core::arch::asm! ( 
-             "csrw satp, {0}"
-             ,"sfence.vma", in(reg) satp_val
-             );
-     }
+pub unsafe fn get_index(physical_address: usize ) -> usize
+{
+    const SHIFT: usize = 22;
+    return physical_address >> SHIFT;
+}
+pub unsafe fn get_ppn(physical_address: usize) -> usize {
+    const SHIFT: usize = 12;
+    return physical_address >> SHIFT;
+}
+pub unsafe fn setup_root_table(root: &mut PageTable){
+          let physical_index = get_index(KERNEL_PHYSICAL_ADDRESS);
+          let ppn = get_ppn(KERNEL_PHYSICAL_ADDRESS);
+          root.entries[physical_index] = Pte::new(ppn, flags::Valid | flags::Readable | flags::Executeable);
+        }
+pub unsafe fn set_satp_value(ppn: usize) -> usize
+{
+    return ppn | (1 << 31);
+}
+
+pub unsafe fn enable_paging(root_table_addr: usize){
+    let ppn = get_ppn(root_table_addr);
+    let satp_value = set_satp_value(ppn);
+    unsafe {
+        core::arch::asm!(
+            "csrw satp, {0}",
+            "sfence.vma", in(reg) satp_value
+            );
+           }
 }
 #[inline(always)]
 pub unsafe fn flush_tlb() {
@@ -62,7 +70,7 @@ pub unsafe fn flush_tlb() {
 pub unsafe fn setup_kernel_leaf(leaf: &mut LeafPageTable){
     for i in 0 .. 32 { 
           let phys_addr = 0x80000000 + (i * 4096);
-          let ppn = (phys_addr >> 12) as u32; 
+          let ppn = get_ppn(phys_addr) as usize; 
           leaf.entries[i] = Pte::new(ppn, flags::Valid | flags::Readable | flags::Executeable);
      } 
 
