@@ -19,9 +19,7 @@ pub struct LeafPageTable{
 pub static mut KERNEL_LEAF_TABLE: LeafPageTable = LeafPageTable{
       entries: [Pte(0); 1024],
 };
-pub static mut ROOT_PAGE_TABLE:
-     
-     PageTable = PageTable{
+pub static mut ROOT_PAGE_TABLE: PageTable = PageTable{
          entries: [const { Pte(0) }; 1024],
      };
 pub mod flags{
