@@ -32,6 +32,17 @@ pub unsafe extern "C" fn _start() -> ! {
     }
 }
 
+
+pub unsafe fn long_jump_to_high_memory(){
+    core::arch::asm!(
+        "li t0, 0x7FC00000",
+        "auipc t1, 0",
+        "add t1, t1, t0",
+        "addi t1, t1, 8",
+        "jr t1",
+        out("t0") _, out("t1") _
+        );
+}
 fn rust_main() -> !{
 
      unsafe{ 
@@ -43,9 +54,9 @@ fn rust_main() -> !{
       
       let handler_addr = m_trap_handler as usize;
       asm!("csrw mtvec, {}", in(reg) handler_addr);
-      enable_paging(core::ptr::addr_of! (ROOT_PAGE_TABLE) as usize);
-
       flush_tlb();
+      enable_paging(core::ptr::addr_of! (ROOT_PAGE_TABLE) as usize);
+      long_jump_to_high_memory(); 
      }
       loop{};
 }

@@ -42,8 +42,12 @@ pub unsafe fn get_ppn(physical_address: usize) -> usize {
 }
 pub unsafe fn setup_root_table(root: &mut PageTable){
           let physical_index = get_index(KERNEL_PHYSICAL_ADDRESS);
-          let ppn = get_ppn(KERNEL_PHYSICAL_ADDRESS);
-          root.entries[physical_index] = Pte::new(ppn, flags::Valid | flags::Readable | flags::Executeable);
+          let leaf_addr = core::ptr::addr_of!(KERNEL_LEAF_TABLE) as usize;
+          let leaf_ppn = get_ppn(leaf_addr);
+          root.entries[physical_index] = Pte::new(leaf_ppn, flags::Valid | flags::Readable | flags::Executeable);
+          let high_memory_index = 1023;
+          root.entries[high_memory_index] = Pte::new(leaf_ppn, flags::Valid | flags::Readable | flags::Executeable);
+
         }
 pub unsafe fn set_satp_value(ppn: usize) -> usize
 {
