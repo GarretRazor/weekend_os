@@ -33,18 +33,16 @@ pub unsafe extern "C" fn _start() -> ! {
 }
 
 
-pub unsafe fn long_jump_to_high_memory(){
-    core::arch::asm!(
-        "li t0, 0x7FC00000",
-        "la t1, 1f",
-        "add t1, t1, t0",
-        "jr t1",
-        "1:",
-        out("t0") _, out("t1") _
-        );
+unsafe fn long_jump(address: usize) -> ! {
+    asm!("auipc t0, 0",
+         "jr {addr}",
+         addr = in(reg) address,
+         options(noreturn)
+
+         )
 }
 fn rust_main() -> !{
-
+     let high_mem = 0xFFFFFFFF;
      unsafe{ 
       let root_ptr = core::ptr::addr_of_mut!(ROOT_PAGE_TABLE);
       let leaf_ptr = core::ptr::addr_of_mut!(KERNEL_LEAF_TABLE);
@@ -56,7 +54,7 @@ fn rust_main() -> !{
       asm!("csrw mtvec, {}", in(reg) handler_addr);
       flush_tlb();
       enable_paging(core::ptr::addr_of! (ROOT_PAGE_TABLE) as usize);
-      long_jump_to_high_memory(); 
+      long_jump(high_mem);
      }
       loop{};
 }
